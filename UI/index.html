@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Self-Evolving Neural Networks Using Performance-Driven Architecture Mutation</title>
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- React 18 and Babel Standalone for Native In-Browser Execution -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+
+  <!-- React Mount Root -->
+  <div id="root"></div>
+
+  <!-- Core System Engines in Dependency Order -->
+  <script src="js/state.js"></script>
+  <script src="js/evolutionEngine.js"></script>
+  <script src="js/networkVisualizer.js"></script>
+  <script src="js/charts.js"></script>
+  <script src="js/modelComparisonChart.js"></script>
+
+  <!-- React 18 Dashboard Application -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef, useCallback, useMemo } = React;
+
+    // =========================================================================
+    // CANONICAL AUTHENTIC SVG LOGOS FOR AI MODELS
+    // =========================================================================
+
+    // 1. OpenAI GPT Logo
+    function GptLogo({ size = 18, color = "#10a37f" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M22.28 9.82a5.98 5.98 0 0 0-.52-4.91 6.05 6.05 0 0 0-6.51-2.9A6.07 6.07 0 0 0 4.98 4.18a5.98 5.98 0 0 0-4 2.9 6.05 6.05 0 0 0 .74 7.1 5.98 5.98 0 0 0 .51 4.91 6.05 6.05 0 0 0 6.52 2.9A5.98 5.98 0 0 0 13.26 24a6.06 6.06 0 0 0 5.77-4.2 5.99 5.99 0 0 0 4-2.9 6.06 6.06 0 0 0-.75-7.08zm-9.02 12.61a4.48 4.48 0 0 1-2.88-1.04l.14-.08 4.78-2.76a.8.8 0 0 0 .39-.68v-6.74l2.02 1.17a.07.07 0 0 1 .04.05v5.58a4.5 4.5 0 0 1-4.49 4.5zm-9.66-4.13a4.47 4.47 0 0 1-.54-3.01l.14.08 4.79 2.76a.77.77 0 0 0 .78 0l5.84-3.37v2.33a.08.08 0 0 1-.03.06L9.74 19.95a4.5 4.5 0 0 1-6.14-1.65zM2.34 7.9a4.49 4.49 0 0 1 2.37-1.98v5.68a.77.77 0 0 0 .38.68l5.82 3.35-2.02 1.17a.08.08 0 0 1-.07 0l-4.83-2.79A4.5 4.5 0 0 1 2.34 7.9zm16.1 3.85-5.84-3.37 2.02-1.17a.08.08 0 0 1 .07 0l4.83 2.79a4.5 4.5 0 0 1-.68 8.1v-5.67a.79.79 0 0 0-.4-.68zm2.01-3.02-.14-.08-4.78-2.79a.78.78 0 0 0-.78 0L8.81 9.23V6.9a.07.07 0 0 1 .03-.06l4.83-2.79a4.5 4.5 0 0 1 6.68 4.66zm-12.64 4.14-2.02-1.17a.08.08 0 0 1-.04-.05V6.06a4.5 4.5 0 0 1 7.38-3.45l-.14.08-4.79 2.76a.8.8 0 0 0-.39.68zm1.1-2.37 2.6-1.5 2.6 1.5v3l-2.6 1.5-2.6-1.5z"/>
+        </svg>
+      );
+    }
+
+    // 2. Google Gemini Logo
+    function GeminiLogo({ size = 18, color = "#1a73e8" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M12 0C12 6.627 6.627 12 0 12c6.627 0 12 5.373 12 12 0-6.627 5.373-12 12-12-6.627 0-12-5.373-12-12z" />
+        </svg>
+      );
+    }
+
+    // 3. Anthropic Claude Logo
+    function ClaudeLogo({ size = 18, color = "#d97706" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M13.8 2.5h-3.6v6.8L5.3 4.4 2.8 6.9l4.9 4.9H1v3.6h6.7l-4.9 4.9 2.5 2.5 4.9-4.9v6.8h3.6v-6.8l4.9 4.9 2.5-2.5-4.9-4.9H23v-3.6h-6.7l4.9-4.9-2.5-2.5-4.9 4.9V2.5z" />
+        </svg>
+      );
+    }
+
+    // 4. Meta Llama Logo
+    function LlamaLogo({ size = 18, color = "#8b5cf6" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M12 6.5C8.8 6.5 6.2 8.7 5.1 11.7 4.2 9.5 2.4 8 0 8v3.5c1.8 0 3.3 1.3 3.9 3.1.6 1.8 2.2 3.4 4.5 3.4 3.2 0 5.8-2.2 6.9-5.2.9 2.2 2.7 3.7 5.1 3.7V14.5c-1.8 0-3.3-1.3-3.9-3.1-.6-1.8-2.2-3.4-4.5-3.4zm0 2.5c1.7 0 3 1.1 3.5 2.7-.8 2.1-2.6 3.8-5 3.8-1.7 0-3-1.1-3.5-2.7.8-2.1 2.6-3.8 5-3.8z" />
+        </svg>
+      );
+    }
+
+    // 5. DeepSeek Logo
+    function DeepSeekLogo({ size = 18, color = "#0ea5e9" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M21.5 12c0-4.5-3.5-8.5-8.5-8.5C7.5 3.5 3 7.5 3 12c0 2.2.9 4.2 2.3 5.7L4 21l4.2-1.1c1.4.7 3.1 1.1 4.8 1.1 5 0 8.5-4 8.5-9zm-9 6c-1.4 0-2.8-.4-4-.1l-1.8.5.5-1.7C6.4 15.6 6 14.1 6 12.5 6 8.9 8.7 6 12.5 6S19 8.9 19 12.5 16.3 18 12.5 18zm-.5-8c-.8 0-1.5.7-1.5 1.5S11.2 13 12 13s1.5-.7 1.5-1.5S12.8 10 12 10z" />
+        </svg>
+      );
+    }
+
+    // 6. Mistral AI Logo
+    function MistralLogo({ size = 18, color = "#f43f5e" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M2 3h4v4H2zm16 0h4v4h-4zm-8 4h4v4h-4zM2 11h4v4H2zm8 0h4v4h-4zm8 0h4v4h-4zM2 19h8v2H2zm12 0h8v2h-8z" />
+        </svg>
+      );
+    }
+
+    // 7. NVIDIA Nemotron Logo (Official NVIDIA Claw Logo in #76b900)
+    function NvidiaNemotronLogo({ size = 20, color = "#76b900" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <path d="M8.94 4.5c-3.1 0-5.6 2.5-5.6 5.6 0 1.9.9 3.5 2.3 4.5-.3-.7-.5-1.5-.5-2.3 0-2.4 1.9-4.3 4.3-4.3 1.8 0 3.3 1.1 4 2.6-.5-.3-1.1-.5-1.7-.5-1.8 0-3.3 1.5-3.3 3.3 0 .8.3 1.6.8 2.2-.2 0-.4.1-.6.1-3 0-5.5-2.5-5.5-5.5 0-3.3 2.7-6 6-6 2.4 0 4.5 1.4 5.4 3.5-.8-.8-1.9-1.3-3.1-1.3-.1 0-.2 0-.2-.1v-1.3c2.7.2 4.9 2.1 5.4 4.8.9-1.7 1.4-3.6 1.4-5.6C19.84 4.5 14.94 0 8.94 0 4 0 0 4 0 8.94c0 4.2 2.9 7.7 6.8 8.7-.3-.6-.5-1.4-.5-2.2 0-2.2 1.8-4 4-4 1.1 0 2.1.4 2.8 1.2-.5-.3-1.1-.5-1.7-.5-1.4 0-2.6 1.2-2.6 2.6 0 .9.5 1.7 1.2 2.2-.1 0-.3.1-.4.1-1.9 0-3.5-1.6-3.5-3.5 0-2.2 1.8-4 4-4 1.8 0 3.3 1.2 3.8 2.8-.7-.6-1.6-1-2.6-1-.2 0-.3 0-.4-.1v-.8c2 .2 3.7 1.5 4.3 3.4.5-1.2.8-2.5.8-3.9 0-4.9-4-8.9-8.9-8.9z" />
+        </svg>
+      );
+    }
+
+    // 8. OX Alpha Logo (Academic Atom Logo)
+    function OxAlphaLogo({ size = 18, color = "#ec4899" }) {
+      return (
+        <svg width={size} height={size} viewBox="0 0 24 24" fill={color} style={{ display: 'inline-block', verticalAlign: 'middle' }}>
+          <circle cx="12" cy="12" r="3"/>
+          <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(30 12 12)" fill="none" stroke={color} strokeWidth="1.8"/>
+          <ellipse cx="12" cy="12" rx="9" ry="4" transform="rotate(-30 12 12)" fill="none" stroke={color} strokeWidth="1.8"/>
+        </svg>
+      );
+    }
+
+    // List of Canonical AI Models
+    const AI_MODELS_LIST = [
+      { id: 'gpt', name: 'GPT', color: '#10a37f', LogoComponent: GptLogo },
+      { id: 'gemini', name: 'Gemini', color: '#1a73e8', LogoComponent: GeminiLogo },
+      { id: 'claude', name: 'Claude', color: '#d97706', LogoComponent: ClaudeLogo },
+      { id: 'llama', name: 'Llama', color: '#8b5cf6', LogoComponent: LlamaLogo },
+      { id: 'deepseek', name: 'DeepSeek', color: '#0ea5e9', LogoComponent: DeepSeekLogo },
+      { id: 'mistral', name: 'Mistral', color: '#f43f5e', LogoComponent: MistralLogo },
+      { id: 'nemotron', name: 'NVIDIA Nemotron', color: '#76b900', LogoComponent: NvidiaNemotronLogo, isNvidia: true },
+      { id: 'oxalfa', name: 'OX Alpha', color: '#ec4899', LogoComponent: OxAlphaLogo }
+    ];
+
+    // Detailed Model Metrics Data mapped directly from active project benchmarks
+    const MODEL_METRICS_DATA = [
+      {
+        id: 'gpt',
+        name: 'GPT',
+        badge: 'OpenAI Frontier',
+        color: '#10a37f',
+        LogoComponent: GptLogo,
+        accuracy: '92.0',
+        performanceScore: '94.5',
+        latency: '16.9 ms',
+        efficiency: '88.4',
+        improvement: '+6.6%',
+        currentGeneration: 'Gen 08',
+        peakScore: '94.5'
+      },
+      {
+        id: 'gemini',
+        name: 'Gemini',
+        badge: 'Google Frontier',
+        color: '#1a73e8',
+        LogoComponent: GeminiLogo,
+        accuracy: '91.5',
+        performanceScore: '93.2',
+        latency: '12.8 ms',
+        efficiency: '90.1',
+        improvement: '+6.9%',
+        currentGeneration: 'Gen 08',
+        peakScore: '93.2'
+      },
+      {
+        id: 'claude',
+        name: 'Claude',
+        badge: 'Anthropic Frontier',
+        color: '#d97706',
+        LogoComponent: ClaudeLogo,
+        accuracy: '92.0',
+        performanceScore: '95.1',
+        latency: '19.4 ms',
+        efficiency: '87.1',
+        improvement: '+6.2%',
+        currentGeneration: 'Gen 08',
+        peakScore: '95.1'
+      },
+      {
+        id: 'llama',
+        name: 'Llama',
+        badge: 'Meta Open-Weight',
+        color: '#8b5cf6',
+        LogoComponent: LlamaLogo,
+        accuracy: '84.0',
+        performanceScore: '86.8',
+        latency: '10.6 ms',
+        efficiency: '87.2',
+        improvement: '+8.5%',
+        currentGeneration: 'Gen 08',
+        peakScore: '87.0'
+      },
+      {
+        id: 'deepseek',
+        name: 'DeepSeek',
+        badge: 'Reasoning & Code',
+        color: '#0ea5e9',
+        LogoComponent: DeepSeekLogo,
+        accuracy: '89.7',
+        performanceScore: '92.2',
+        latency: '15.1 ms',
+        efficiency: '88.0',
+        improvement: '+8.8%',
+        currentGeneration: 'Gen 08',
+        peakScore: '93.0'
+      },
+      {
+        id: 'mistral',
+        name: 'Mistral',
+        badge: 'High-Efficiency',
+        color: '#f43f5e',
+        LogoComponent: MistralLogo,
+        accuracy: '82.4',
+        performanceScore: '86.5',
+        latency: '9.2 ms',
+        efficiency: '86.9',
+        improvement: '+9.6%',
+        currentGeneration: 'Gen 08',
+        peakScore: '86.5'
+      },
+      {
+        id: 'nemotron',
+        name: 'NVIDIA Nemotron',
+        badge: 'Enterprise Reasoning',
+        color: '#76b900',
+        LogoComponent: NvidiaNemotronLogo,
+        isNvidia: true,
+        accuracy: '85.1',
+        performanceScore: '88.2',
+        latency: '12.0 ms',
+        efficiency: '87.0',
+        improvement: '+8.4%',
+        currentGeneration: 'Gen 08',
+        peakScore: '88.2'
+      },
+      {
+        id: 'oxalfa',
+        name: 'OX Alpha',
+        badge: 'Academic Prototype',
+        color: '#ec4899',
+        LogoComponent: OxAlphaLogo,
+        accuracy: '77.2',
+        performanceScore: '80.2',
+        latency: '15.8 ms',
+        efficiency: '80.8',
+        improvement: '+8.4%',
+        currentGeneration: 'Gen 08',
+        peakScore: '80.2'
+      }
+    ];
+
+    // =========================================================================
+    // MAIN REACT DASHBOARD APPLICATION
+    // =========================================================================
+    function App() {
+      // Core Reactive State
+      const [currentArch, setCurrentArch] = useState(AppState.currentArch);
+      const [metrics, setMetrics] = useState(AppState.metrics);
+      const [generation, setGeneration] = useState(AppState.generation);
+      const [totalMutations, setTotalMutations] = useState(AppState.totalMutations);
+      const [bestScore, setBestScore] = useState(AppState.bestPerformanceScore);
+      const [evolutionStatus, setEvolutionStatus] = useState(AppState.evolutionStatus);
+      const [activeStep, setActiveStep] = useState(AppState.activeWorkflowStep);
+      const [latestDecision, setLatestDecision] = useState(AppState.latestDecision);
+      const [agentLogs, setAgentLogs] = useState([...AppState.agentLogs]);
+      
+      // Detailed Evolution History & Decision records
+      const [historyDecisions, setHistoryDecisions] = useState([
+        {
+          generation: '01',
+          archChange: 'Baseline (4 → 4 → 4 → 2)',
+          performance: '72.0%',
+          mutation: 'Initial Baseline Setup',
+          reason: 'Initial model benchmarked. Accuracy below 85% target threshold.',
+          decision: 'Mutate', // 'Keep' | 'Mutate' | 'Reject'
+          improvement: 'Baseline',
+          timestamp: new Date().toLocaleTimeString()
+        }
+      ]);
+
+      // Controls State
+      const [isProcessing, setIsProcessing] = useState(false);
+      const [isAutoRunning, setIsAutoRunning] = useState(false);
+      const [speedMs, setSpeedMs] = useState(AppState.config.speedMs);
+      const [targetFitness, setTargetFitness] = useState(AppState.config.performanceThreshold);
+      const [animRunning, setAnimRunning] = useState(true);
+      const [isFullscreen, setIsFullscreen] = useState(false);
+
+      // Model Filter Checkboxes
+      const [selectedModels, setSelectedModels] = useState(new Set(AI_MODELS_LIST.map(m => m.id)));
+      const [selectedMetric, setSelectedMetric] = useState('Reasoning');
+
+      // Engine References
+      const visualizerRef = useRef(null);
+      const analyticsRef = useRef(null);
+      const autoRunTimerRef = useRef(null);
+      const prevPerfScoreRef = useRef(72.0);
+
+      // --- Initialize Canvas Engines on Mount ---
+      useEffect(() => {
+        if (!visualizerRef.current) {
+          visualizerRef.current = new NetworkVisualizer('networkCanvas');
+        }
+        if (!analyticsRef.current) {
+          analyticsRef.current = new ModelVariationAnalytics();
+        }
+
+        // Subscribe to AppState notifications
+        AppState.subscribe((event, payload) => {
+          setMetrics({ ...AppState.metrics });
+          setGeneration(AppState.generation);
+          setTotalMutations(AppState.totalMutations);
+          setBestScore(AppState.bestPerformanceScore);
+          setEvolutionStatus(AppState.evolutionStatus);
+          setCurrentArch({ ...AppState.currentArch });
+          setLatestDecision({ ...AppState.latestDecision });
+          setAgentLogs([...AppState.agentLogs]);
+          setActiveStep(AppState.activeWorkflowStep);
+
+          if (event === 'candidateGenerated' || event === 'cycleCompleted' || event === 'stateReset') {
+            if (visualizerRef.current) {
+              visualizerRef.current.rebuildGraph();
+              visualizerRef.current.startAnimation(10000);
+            }
+          }
+        });
+
+        const handleFullscreenChange = () => {
+          setIsFullscreen(Boolean(document.fullscreenElement));
+        };
+        document.addEventListener('fullscreenchange', handleFullscreenChange);
+
+        return () => {
+          document.removeEventListener('fullscreenchange', handleFullscreenChange);
+          if (autoRunTimerRef.current) clearTimeout(autoRunTimerRef.current);
+        };
+      }, []);
+
+      // Fullscreen Toggle
+      const toggleFullscreen = useCallback(() => {
+        if (!document.fullscreenElement) {
+          document.documentElement.requestFullscreen().catch(err => {
+            console.warn("Fullscreen request error:", err);
+          });
+        } else {
+          document.exitFullscreen().catch(err => {
+            console.warn("Exit fullscreen error:", err);
+          });
+        }
+      }, []);
+
+      // Helper to compute improvement and decision state
+      const recordEvolutionDecision = (prevScore, newScore, mutationName, newArchStr, reasonStr) => {
+        const delta = parseFloat((newScore - prevScore).toFixed(1));
+        const genStr = AppState.generation < 10 ? `0${AppState.generation}` : `${AppState.generation}`;
+        let decisionType = 'Keep';
+        let improvementStr = delta > 0 ? `+${delta}%` : `${delta}%`;
+
+        if (delta > 0) {
+          decisionType = 'Keep';
+        } else if (delta < 0) {
+          decisionType = 'Reject';
+        } else {
+          decisionType = 'Mutate';
+          improvementStr = '0.0%';
+        }
+
+        const newEntry = {
+          generation: genStr,
+          archChange: newArchStr,
+          performance: `${newScore.toFixed(1)}%`,
+          mutation: mutationName,
+          reason: reasonStr || 'Evaluated candidate performance against baseline threshold.',
+          decision: decisionType,
+          improvement: improvementStr,
+          timestamp: new Date().toLocaleTimeString()
+        };
+
+        setHistoryDecisions(prev => [newEntry, ...prev]);
+        prevPerfScoreRef.current = newScore;
+      };
+
+      // --- Evolution Execution Handlers ---
+      const handleRunEvolution = async () => {
+        if (EvolutionEngine.isProcessingStep || isProcessing) return;
+        if (isAutoRunning) handleStopAutoRun();
+
+        setIsProcessing(true);
+        const prevScore = AppState.metrics.performanceScore;
+        try {
+          await EvolutionEngine.executeEvolutionCycle();
+          const newScore = AppState.metrics.performanceScore;
+          const mutationName = AppState.latestDecision.selectedMutation || 'Autonomous Mutation';
+          const newArchStr = AppState.latestDecision.newArchitecture || 'Input → Hidden → Output';
+          const reasonStr = AppState.latestDecision.reason || 'Autonomous agent evaluation.';
+          recordEvolutionDecision(prevScore, newScore, mutationName, newArchStr, reasonStr);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      const handleToggleAutoRun = () => {
+        if (isAutoRunning) {
+          handleStopAutoRun();
+        } else {
+          setIsAutoRunning(true);
+          AppState.config.autoRunning = true;
+          runAutoEvolutionLoop();
+        }
+      };
+
+      const handleStopAutoRun = () => {
+        setIsAutoRunning(false);
+        AppState.config.autoRunning = false;
+        if (autoRunTimerRef.current) {
+          clearTimeout(autoRunTimerRef.current);
+          autoRunTimerRef.current = null;
+        }
+      };
+
+      const runAutoEvolutionLoop = async () => {
+        if (!AppState.config.autoRunning) return;
+        if (AppState.metrics.performanceScore >= AppState.config.performanceThreshold) {
+          handleStopAutoRun();
+          return;
+        }
+
+        setIsProcessing(true);
+        const prevScore = AppState.metrics.performanceScore;
+        await EvolutionEngine.executeEvolutionCycle();
+        const newScore = AppState.metrics.performanceScore;
+        const mutationName = AppState.latestDecision.selectedMutation || 'Autonomous Mutation';
+        const newArchStr = AppState.latestDecision.newArchitecture || 'Input → Hidden → Output';
+        const reasonStr = AppState.latestDecision.reason;
+        recordEvolutionDecision(prevScore, newScore, mutationName, newArchStr, reasonStr);
+        setIsProcessing(false);
+
+        if (AppState.config.autoRunning && AppState.metrics.performanceScore < AppState.config.performanceThreshold) {
+          autoRunTimerRef.current = setTimeout(runAutoEvolutionLoop, AppState.config.speedMs);
+        } else {
+          handleStopAutoRun();
+        }
+      };
+
+      const handleReset = () => {
+        handleStopAutoRun();
+        AppState.resetToInitial();
+        prevPerfScoreRef.current = 72.0;
+        setHistoryDecisions([
+          {
+            generation: '01',
+            archChange: 'Baseline (4 → 4 → 4 → 2)',
+            performance: '72.0%',
+            mutation: 'Initial Baseline Setup',
+            reason: 'System reset to default baseline topology.',
+            decision: 'Mutate',
+            improvement: 'Baseline',
+            timestamp: new Date().toLocaleTimeString()
+          }
+        ]);
+        if (visualizerRef.current) {
+          visualizerRef.current.rebuildGraph();
+          visualizerRef.current.startAnimation(10000);
+        }
+      };
+
+      const handleManualMutation = async (type) => {
+        if (EvolutionEngine.isProcessingStep || isProcessing) return;
+        if (isAutoRunning) handleStopAutoRun();
+
+        setIsProcessing(true);
+        const prevScore = AppState.metrics.performanceScore;
+        try {
+          await EvolutionEngine.executeEvolutionCycle({ type, layerIndex: 0 });
+          const newScore = AppState.metrics.performanceScore;
+          const mutationName = type === 'ADD_NEURON' ? '+ Add Neuron' :
+                               type === 'REMOVE_NEURON' ? '− Remove Neuron' :
+                               type === 'ADD_LAYER' ? '+ Add Hidden Layer' : '− Remove Hidden Layer';
+          const newArchStr = AppState.latestDecision.newArchitecture || 'Input → Hidden → Output';
+          const reasonStr = `Manual operator applied: ${mutationName}`;
+          recordEvolutionDecision(prevScore, newScore, mutationName, newArchStr, reasonStr);
+        } finally {
+          setIsProcessing(false);
+        }
+      };
+
+      const handleSpeedChange = (e) => {
+        const val = parseInt(e.target.value, 10);
+        setSpeedMs(val);
+        AppState.config.speedMs = val;
+      };
+
+      const handleTargetChange = (e) => {
+        const val = parseInt(e.target.value, 10);
+        setTargetFitness(val);
+        AppState.config.performanceThreshold = val;
+      };
+
+      const handleReplayAnimation = () => {
+        if (visualizerRef.current) {
+          visualizerRef.current.replayAnimation();
+          setAnimRunning(true);
+        }
+      };
+
+      // Model Filter Checkbox Handlers
+      const toggleModel = (modelId) => {
+        const next = new Set(selectedModels);
+        if (next.has(modelId)) next.delete(modelId);
+        else next.add(modelId);
+        setSelectedModels(next);
+        if (analyticsRef.current) {
+          analyticsRef.current.toggleModel(modelId, next.has(modelId));
+        }
+      };
+
+      const selectAllModels = () => {
+        const all = new Set(AI_MODELS_LIST.map(m => m.id));
+        setSelectedModels(all);
+        if (analyticsRef.current) analyticsRef.current.setAllModels(true);
+      };
+
+      const deselectAllModels = () => {
+        const empty = new Set();
+        setSelectedModels(empty);
+        if (analyticsRef.current) analyticsRef.current.setAllModels(false);
+      };
+
+      const handleMetricSelect = (e) => {
+        const m = e.target.value;
+        setSelectedMetric(m);
+        if (analyticsRef.current) analyticsRef.current.setMetric(m);
+      };
+
+      // Presets
+      const handleLoadPreset = (scenario) => {
+        handleStopAutoRun();
+        if (scenario === 'underfitting') {
+          AppState.currentArch = { input: 4, hidden: [2], output: 2 };
+          AppState.metrics = {
+            performanceScore: 48.0,
+            accuracy: 48.0,
+            loss: 0.92,
+            latency: 4.8,
+            paramCount: AppState.calculateParamCount(AppState.currentArch),
+            fitnessScore: 48.0
+          };
+          AppState.bestPerformanceScore = 48.0;
+          AppState.generation = 1;
+          AppState.latestDecision = {
+            currentPerformance: '48%',
+            detectedIssue: 'Severe high-bias underfitting detected (48% < 85%).',
+            selectedMutation: 'Add Hidden Layer / Neurons',
+            newArchitecture: 'Input → 2 → Output',
+            newPerformance: '48%',
+            finalDecision: 'MUTATE',
+            reason: 'Network has insufficient expressivity to resolve non-linear decision boundaries.'
+          };
+          AppState.addAgentLog('Scenario', 'Severe Underfitting Loaded', 'Loaded minimal network [Input → 2 → Output] at 48% score.', 'warning');
+          recordEvolutionDecision(72.0, 48.0, 'Underfitting Preset Demo', 'Input → 2 → Output', 'Loaded underfitting preset (48.0%) to test widening mutations.');
+        } else if (scenario === 'bloat') {
+          AppState.currentArch = { input: 4, hidden: [16, 16, 14], output: 2 };
+          AppState.metrics = {
+            performanceScore: 88.0,
+            accuracy: 92.0,
+            loss: 0.18,
+            latency: 38.6,
+            paramCount: AppState.calculateParamCount(AppState.currentArch),
+            fitnessScore: 88.0
+          };
+          AppState.bestPerformanceScore = 88.0;
+          AppState.generation = 1;
+          AppState.latestDecision = {
+            currentPerformance: '88%',
+            detectedIssue: 'Excessive latency penalty due to redundant neurons.',
+            selectedMutation: 'Prune Neurons / Layers',
+            newArchitecture: 'Input → 16 → 16 → 14 → Output',
+            newPerformance: '88%',
+            finalDecision: 'MUTATE',
+            reason: 'High parameter bloat causes latency overhead. Pruning recommended.'
+          };
+          AppState.addAgentLog('Scenario', 'Bloat Preset Loaded', 'Loaded oversized network [16-16-14] at 88% score.', 'warning');
+          recordEvolutionDecision(72.0, 88.0, 'Bloat Preset Demo', 'Input → 16 → 16 → 14 → Output', 'Loaded over-parameterized preset (88.0%) to test pruning mutations.');
+        } else {
+          handleReset();
+          return;
+        }
+
+        AppState.candidateArch = null;
+        AppState.activeWorkflowStep = 0;
+        AppState.notify('stateReset');
+      };
+
+      // Topology description
+      const topologyString = currentArch.hidden && currentArch.hidden.length > 0
+        ? `Input Layer (${currentArch.input}) → Hidden [${currentArch.hidden.join(' → ')}] → Output Layer (${currentArch.output})`
+        : `Input Layer (${currentArch.input}) → Output Layer (${currentArch.output})`;
+
+      // Dynamic rationale for Mutation Decision Banner
+      const mutationRationale = useMemo(() => {
+        const score = metrics.performanceScore;
+        const target = targetFitness;
+        if (score < target) {
+          return {
+            status: 'NEEDS_MUTATION',
+            badge: 'Mutation Required',
+            badgeColor: 'var(--accent-amber)',
+            reason: `Current performance (${score.toFixed(1)}%) is below target threshold (${target}%). System detects underfitting bottleneck and will mutate architecture by expanding layer depth or neuron capacity to reduce error.`
+          };
+        } else {
+          return {
+            status: 'TARGET_REACHED',
+            badge: 'Target Met / Converged',
+            badgeColor: 'var(--accent-emerald)',
+            reason: `Current performance (${score.toFixed(1)}%) satisfies target threshold (${target}%). Evolutionary agent keeps current optimal topology and tests subtle pruning mutations to optimize latency.`
+          };
+        }
+      }, [metrics.performanceScore, targetFitness]);
+
+      return (
+        <div className={`app-root ${isFullscreen ? 'fullscreen-mode' : ''}`}>
+
+          {/* ================================================================= */}
+          {/* 1. HEADER WITH TITLE, STATUS & FULLSCREEN TOGGLE                  */}
+          {/* ================================================================= */}
+          <header className="top-navbar">
+            <div className="nav-brand">
+              <div className="brand-symbol">🧬</div>
+              <div className="brand-details">
+                <span className="brand-name">Self-Evolving Neural Networks</span>
+                <span className="brand-badge-text">Performance-Driven Architecture Mutation</span>
+              </div>
+            </div>
+
+            <ul className="nav-links">
+              <li><a href="#dashboard" className="nav-link active"><span>📊</span> Dashboard</a></li>
+              <li><a href="#model-metrics-hub" className="nav-link"><span>📊</span> Model Metrics</a></li>
+              <li><a href="#architecture" className="nav-link"><span>🕸️</span> Architecture</a></li>
+              <li><a href="#mutation-controls" className="nav-link"><span>⚡</span> Mutation</a></li>
+              <li><a href="#evolution-history-decision" className="nav-link"><span>📜</span> History &amp; Decision</a></li>
+              <li><a href="#model-comparison" className="nav-link"><span>📈</span> AI Models</a></li>
+            </ul>
+
+            <div className="nav-meta">
+              <div className="hero-status-pill" style={{ padding: '6px 14px', fontSize: '0.78rem' }}>
+                <span className="pulse-dot-green"></span>
+                <span>{evolutionStatus === 'IDLE' ? 'System Ready' : `Status: ${evolutionStatus}`}</span>
+              </div>
+
+              <button 
+                onClick={toggleFullscreen} 
+                className="btn-fullscreen" 
+                title="Toggle presentation fullscreen mode"
+              >
+                <span>{isFullscreen ? '🗗' : '⛶'}</span>
+                <span>{isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}</span>
+              </button>
+
+              <span className="badge-tag badge-college">🎓 AI Research Project</span>
+            </div>
+          </header>
+
+          <main className="container">
+
+            {/* ================================================================= */}
+            {/* 2. AI MODEL FILTER & MODEL METRICS (VISUALLY CONNECTED HUB)       */}
+            {/* ================================================================= */}
+            <section className="card" id="model-metrics-hub" style={{ padding: '16px 22px', margin: 0 }}>
+              <div className="filter-header-row" style={{ marginBottom: '10px' }}>
+                <span className="filter-toolbar-label" style={{ fontSize: '0.86rem' }}>
+                  <span>⚙️</span> Benchmark AI Models &amp; Architecture Evaluators:
+                </span>
+                <div className="filter-quick-actions">
+                  <button className="btn-filter-action" onClick={selectAllModels} title="Select all models">
+                    <span>✓ Select All</span>
+                  </button>
+                  <button className="btn-filter-action" onClick={deselectAllModels} title="Deselect all models">
+                    <span>✗ Deselect All</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* 8 AI Model Filter Pills with Authentic Canonical Logos */}
+              <div className="model-checkbox-grid">
+                {AI_MODELS_LIST.map(({ id, name, color, LogoComponent, isNvidia }) => {
+                  const isChecked = selectedModels.has(id);
+                  return (
+                    <label 
+                      key={id} 
+                      className={`model-checkbox-pill ${isNvidia ? 'pill-nemotron' : ''}`}
+                      style={{ 
+                        '--model-color': color,
+                        borderColor: isNvidia ? '#76b900' : isChecked ? color : 'var(--border-card)'
+                      }}
+                    >
+                      <input 
+                        type="checkbox" 
+                        checked={isChecked}
+                        onChange={() => toggleModel(id)}
+                      />
+                      {/* Canonical Vector SVG Logo */}
+                      <span className="pill-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                        <LogoComponent size={isNvidia ? 18 : 16} color={color} />
+                      </span>
+                      
+                      {/* Model Name: Exactly "NVIDIA Nemotron" */}
+                      <span className="pill-name" style={{ color: isNvidia ? '#76b900' : '#fff', fontWeight: isNvidia ? 700 : 600 }}>
+                        {name}
+                      </span>
+
+                      {/* Prominent Badge for NVIDIA Nemotron */}
+                      {isNvidia && (
+                        <span className="nemotron-badge" style={{ marginLeft: '4px' }}>
+                          Featured
+                        </span>
+                      )}
+                    </label>
+                  );
+                })}
+              </div>
+
+              {/* MODEL METRICS SECTION - VISUALLY CONNECTED DASHBOARD CARDS */}
+              <div className="model-metrics-section">
+                <div className="model-metrics-header">
+                  <div className="model-metrics-title">
+                    <span>📊</span> Model Metrics
+                  </div>
+                  <div className="model-metrics-subnote">
+                    {selectedModels.size} of {AI_MODELS_LIST.length} AI models active • Click any model card or filter pill to highlight
+                  </div>
+                </div>
+
+                <div className="model-metrics-grid">
+                  {MODEL_METRICS_DATA.map((m) => {
+                    const isSelected = selectedModels.has(m.id);
+                    return (
+                      <div 
+                        key={m.id}
+                        className={`model-metric-card ${isSelected ? 'active' : 'inactive'} ${m.isNvidia ? 'card-nemotron' : ''}`}
+                        style={{ '--model-color': m.color }}
+                        onClick={() => toggleModel(m.id)}
+                        title={`Click to ${isSelected ? 'deselect' : 'select'} ${m.name}`}
+                      >
+                        {/* Card Top: Brand Icon + Exact Model Name + Badge */}
+                        <div className="model-metric-top">
+                          <div className="model-metric-brand">
+                            <span className="pill-icon" style={{ display: 'inline-flex', alignItems: 'center' }}>
+                              <m.LogoComponent size={m.isNvidia ? 19 : 17} color={m.color} />
+                            </span>
+                            <span className="model-metric-name" style={{ color: m.isNvidia ? '#76b900' : '#fff' }}>
+                              {m.name}
+                            </span>
+                          </div>
+                          <span className="model-metric-badge" style={{ 
+                            color: m.isNvidia ? '#76b900' : 'var(--text-secondary)',
+                            border: m.isNvidia ? '1px solid rgba(118, 185, 0, 0.45)' : '1px solid rgba(255, 255, 255, 0.08)',
+                            background: m.isNvidia ? 'rgba(118, 185, 0, 0.14)' : 'rgba(255, 255, 255, 0.04)'
+                          }}>
+                            {m.badge}
+                          </span>
+                        </div>
+
+                        {/* 6 Real Project Benchmark Metrics */}
+                        <div className="model-metric-stats-grid">
+                          <div className="model-stat-item">
+                            <span className="model-stat-label">Performance</span>
+                            <span className="model-stat-val" style={{ color: m.color }}>{m.performanceScore}%</span>
+                          </div>
+                          <div className="model-stat-item">
+                            <span className="model-stat-label">Accuracy</span>
+                            <span className="model-stat-val">{m.accuracy}%</span>
+                          </div>
+                          <div className="model-stat-item">
+                            <span className="model-stat-label">Latency</span>
+                            <span className="model-stat-val">{m.latency}</span>
+                          </div>
+                          <div className="model-stat-item">
+                            <span className="model-stat-label">Efficiency</span>
+                            <span className="model-stat-val">{m.efficiency}%</span>
+                          </div>
+                          <div className="model-stat-item">
+                            <span className="model-stat-label">Improvement</span>
+                            <span className="model-stat-val gain">{m.improvement}</span>
+                          </div>
+                          <div className="model-stat-item">
+                            <span className="model-stat-label">Generation</span>
+                            <span className="model-stat-val" style={{ color: 'var(--accent-purple)' }}>{m.currentGeneration}</span>
+                          </div>
+                        </div>
+
+                        {/* Card Footer: Selection Status */}
+                        <div className="model-metric-footer">
+                          <span>Status: <strong style={{ color: isSelected ? 'var(--accent-emerald)' : 'var(--text-muted)' }}>{isSelected ? '● Active in Benchmark' : '○ Filtered Out'}</strong></span>
+                          <span>Peak: <strong style={{ color: '#fff' }}>{m.peakScore}%</strong></span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </section>
+
+            {/* ================================================================= */}
+            {/* 3. PERFORMANCE OVERVIEW METRIC CARDS                              */}
+            {/* ================================================================= */}
+            <section className="card" id="dashboard">
+              <div className="perf-overview-header">
+                <div className="card-title-wrap">
+                  <span className="card-icon">📈</span>
+                  <h2 className="card-title">Performance Overview &amp; Telemetry</h2>
+                </div>
+                <div className="prototype-disclaimer-pill">
+                  <span>⚠️</span> Performance-Driven Simulation Metrics
+                </div>
+              </div>
+
+              <div className="metric-cards-grid">
+                {/* Score Card */}
+                <div className="metric-card-box highlight-card">
+                  <div className="metric-card-label">
+                    <span>Performance Score</span>
+                    <span style={{ color: 'var(--accent-cyan)', fontSize: '0.8rem' }}>Target: {targetFitness}%</span>
+                  </div>
+                  <div className="metric-card-val" style={{ color: 'var(--accent-cyan-light)' }}>
+                    {metrics.performanceScore.toFixed(1)}%
+                  </div>
+                  <div className="progress-bar-track">
+                    <div className="progress-bar-fill" style={{ width: `${Math.min(100, Math.max(5, metrics.performanceScore))}%` }}></div>
+                  </div>
+                  <div className="metric-card-sub">Combined capacity &amp; latency metric</div>
+                </div>
+
+                {/* Accuracy */}
+                <div className="metric-card-box">
+                  <div className="metric-card-label">
+                    <span>Simulated Accuracy</span>
+                    <span style={{ color: 'var(--accent-emerald)' }}>Normalized</span>
+                  </div>
+                  <div className="metric-card-val" style={{ color: 'var(--accent-emerald-light)' }}>
+                    {metrics.accuracy.toFixed(1)}%
+                  </div>
+                  <div className="progress-bar-track">
+                    <div className="progress-bar-fill" style={{ width: `${Math.min(100, Math.max(5, metrics.accuracy))}%`, background: 'var(--accent-emerald)' }}></div>
+                  </div>
+                  <div className="metric-card-sub">Decision boundary precision</div>
+                </div>
+
+                {/* Loss */}
+                <div className="metric-card-box">
+                  <div className="metric-card-label">
+                    <span>Loss</span>
+                    <span style={{ color: 'var(--accent-amber)' }}>Cross-Entropy</span>
+                  </div>
+                  <div className="metric-card-val" style={{ color: 'var(--accent-amber)' }}>
+                    {metrics.loss.toFixed(2)}
+                  </div>
+                  <div className="progress-bar-track">
+                    <div className="progress-bar-fill" style={{ width: `${Math.min(100, Math.max(5, (1.5 - metrics.loss) * 66))}%`, background: 'var(--accent-amber)' }}></div>
+                  </div>
+                  <div className="metric-card-sub">Inversely proportional to accuracy</div>
+                </div>
+
+                {/* Generation */}
+                <div className="metric-card-box">
+                  <div className="metric-card-label">
+                    <span>Generation</span>
+                    <span style={{ color: 'var(--accent-purple)' }}>Evolution Cycle</span>
+                  </div>
+                  <div className="metric-card-val">
+                    {generation < 10 ? `0${generation}` : generation}
+                  </div>
+                  <div className="progress-bar-track">
+                    <div className="progress-bar-fill" style={{ width: `${Math.min(100, generation * 12)}%`, background: 'var(--accent-purple)' }}></div>
+                  </div>
+                  <div className="metric-card-sub">Total architecture cycles evaluated</div>
+                </div>
+              </div>
+            </section>
+
+            {/* ================================================================= */}
+            {/* 4. WORKSPACE: ARCHITECTURE MUTATION (TOP) + NETWORK CANVAS        */}
+            {/* ================================================================= */}
+            <div className="workspace-layout">
+
+              {/* LEFT COLUMN: MAIN ARCHITECTURE MUTATION & VISUALIZATION */}
+              <div className="main-column">
+
+                {/* 4.1. ARCHITECTURE MUTATION (MOVED TO TOP OF NEURAL NETWORK ARCHITECTURE) */}
+                <section className="card" id="mutation-controls" style={{ borderTop: '3px solid var(--accent-cyan)' }}>
+                  <div className="card-header">
+                    <div className="card-title-wrap">
+                      <span className="card-icon">⚡</span>
+                      <div>
+                        <h2 className="card-title">Architecture Mutation</h2>
+                        <div className="card-subtitle">
+                          Autonomous agent mutation operators &amp; primary evolutionary execution controls
+                        </div>
+                      </div>
+                    </div>
+                    <span className="badge-tag" style={{ background: 'rgba(14, 165, 233, 0.15)', borderColor: 'var(--accent-cyan)', color: 'var(--accent-cyan-light)' }}>
+                      🔝 Top Positioned Controls
+                    </span>
+                  </div>
+
+                  {/* VISUALLY PROMINENT MUTATION DECISION BANNER (SHOWS WHY MUTATION IS HAPPENING) */}
+                  <div className="mutation-decision-banner">
+                    <div className="mutation-decision-header">
+                      <span className="mutation-decision-tag">
+                        <span>🧠</span> Active Mutation Decision &amp; Rationale:
+                      </span>
+                      <span style={{ 
+                        fontSize: '0.72rem', 
+                        fontWeight: 800, 
+                        color: mutationRationale.badgeColor,
+                        background: 'rgba(0,0,0,0.3)',
+                        padding: '2px 8px',
+                        borderRadius: '4px',
+                        border: `1px solid ${mutationRationale.badgeColor}`
+                      }}>
+                        {mutationRationale.badge}
+                      </span>
+                    </div>
+                    <div className="mutation-decision-rationale">
+                      {mutationRationale.reason}
+                    </div>
+                  </div>
+
+                  <div className="mutation-controls-wrap">
+                    {/* 4 Manual Mutation Action Buttons */}
+                    <div className="mutation-actions-row">
+                      <button 
+                        className="btn-mutation-action" 
+                        onClick={() => handleManualMutation('ADD_NEURON')}
+                        disabled={isProcessing}
+                        title="Add neurons to expand hidden layer capacity"
+                      >
+                        <span>➕ Add Neuron</span>
+                      </button>
+                      <button 
+                        className="btn-mutation-action" 
+                        onClick={() => handleManualMutation('REMOVE_NEURON')}
+                        disabled={isProcessing}
+                        title="Prune neurons from hidden layer"
+                      >
+                        <span>➖ Remove Neuron</span>
+                      </button>
+                      <button 
+                        className="btn-mutation-action" 
+                        onClick={() => handleManualMutation('ADD_LAYER')}
+                        disabled={isProcessing}
+                        title="Add a hidden layer to increase network depth"
+                      >
+                        <span>➕ Add Hidden Layer</span>
+                      </button>
+                      <button 
+                        className="btn-mutation-action" 
+                        onClick={() => handleManualMutation('REMOVE_LAYER')}
+                        disabled={isProcessing}
+                        title="Prune hidden layer to reduce latency"
+                      >
+                        <span>➖ Remove Hidden Layer</span>
+                      </button>
+                    </div>
+
+                    {/* Primary Evolution Execution Bar */}
+                    <div className="main-evolution-action-bar">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                        <button 
+                          className={`btn ${isProcessing ? 'btn-running' : 'btn-primary-glow'}`} 
+                          onClick={handleRunEvolution}
+                          disabled={isProcessing}
+                          title="Execute a complete 7-stage evolution cycle"
+                        >
+                          <span>{isProcessing ? '⚡ Running Cycle...' : '▶ Run Evolution'}</span>
+                        </button>
+                        <button 
+                          className={`btn ${isAutoRunning ? 'btn-running' : 'btn-secondary'}`} 
+                          onClick={handleToggleAutoRun}
+                          title="Continuously run autonomous evolution loop"
+                        >
+                          <span>{isAutoRunning ? '⏹ Stop Auto Evolve' : '🔁 Auto Evolve'}</span>
+                        </button>
+                        <button 
+                          className="btn btn-danger" 
+                          onClick={handleReset}
+                          title="Reset system back to initial baseline architecture"
+                        >
+                          <span>🔄 Reset Baseline</span>
+                        </button>
+                      </div>
+
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                        <div className="control-widget" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          <label htmlFor="selectSpeed">Speed:</label>
+                          <select 
+                            id="selectSpeed" 
+                            value={speedMs} 
+                            onChange={handleSpeedChange} 
+                            style={{ background: '#151d30', border: '1px solid var(--border-card)', color: '#fff', padding: '4px 8px', borderRadius: 'var(--radius-sm)' }}
+                          >
+                            <option value="2000">Slow (2.0s)</option>
+                            <option value="1200">Normal (1.2s)</option>
+                            <option value="600">Fast (0.6s)</option>
+                          </select>
+                        </div>
+
+                        <div className="control-widget" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.82rem', color: 'var(--text-secondary)' }}>
+                          <label htmlFor="sliderTargetFitness">
+                            Target: <strong style={{ color: '#fff' }}>{targetFitness}</strong>%
+                          </label>
+                          <input 
+                            type="range" 
+                            id="sliderTargetFitness" 
+                            min="65" 
+                            max="96" 
+                            value={targetFitness} 
+                            onChange={handleTargetChange} 
+                            style={{ accentColor: 'var(--accent-cyan)', cursor: 'pointer' }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* 4.2. NEURAL NETWORK ARCHITECTURE VISUALIZATION (DIRECTLY UNDERNEATH MUTATION) */}
+                <section id="architecture" className="card">
+                  <div className="card-header">
+                    <div className="card-title-wrap">
+                      <span className="card-icon">🕸️</span>
+                      <div>
+                        <h2 className="card-title">Neural Network Architecture Visualization</h2>
+                        <div className="card-subtitle">{topologyString}</div>
+                      </div>
+                    </div>
+
+                    <div className="animation-toolbar">
+                      <div id="animStatusIndicator" className={`anim-status-badge ${animRunning ? 'running' : 'paused'}`}>
+                        <span className="anim-status-dot"></span>
+                        <span id="animStatusText">{animRunning ? 'Animation: Running' : 'Animation: Paused'}</span>
+                      </div>
+                      <button 
+                        id="btnReplayAnimation" 
+                        className="btn btn-secondary" 
+                        style={{ padding: '6px 14px', fontSize: '0.8rem' }}
+                        onClick={handleReplayAnimation}
+                        title="Restart 10-second subtle neuron pulse animation"
+                      >
+                        <span>🔁 Replay Animation</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Interactive Canvas Graph */}
+                  <div className="canvas-container">
+                    <canvas id="networkCanvas" height="420"></canvas>
+                  </div>
+
+                  {/* Visualizer Color Legend */}
+                  <div className="network-legend">
+                    <div className="legend-group">
+                      <div className="legend-item">
+                        <div className="legend-dot cyan"></div>
+                        <span>INPUT LAYER</span>
+                      </div>
+                      <div className="legend-item">
+                        <div className="legend-dot purple"></div>
+                        <span>HIDDEN LAYERS</span>
+                      </div>
+                      <div className="legend-item">
+                        <div className="legend-dot green"></div>
+                        <span>OUTPUT LAYER</span>
+                      </div>
+                    </div>
+                    <div className="legend-group">
+                      <div className="legend-item">
+                        <div className="legend-dot lime"></div>
+                        <span>MUTATED / ADDED NEURONS</span>
+                      </div>
+                      <div className="legend-item">
+                        <div className="legend-dot red"></div>
+                        <span>PRUNED NEURONS</span>
+                      </div>
+                    </div>
+                  </div>
+                </section>
+
+                {/* 4.3. EVOLUTION HISTORY & DECISION (NEW SECTION IN PLACE OF REMOVED BEFORE VS AFTER) */}
+                <section id="evolution-history-decision" className="card">
+                  <div className="card-header">
+                    <div className="card-title-wrap">
+                      <span className="card-icon">📜</span>
+                      <div>
+                        <h2 className="card-title">Evolution History &amp; Decision</h2>
+                        <div className="card-subtitle">
+                          Timeline of architecture mutations, evaluated scores, reasons, and Keep / Mutate / Reject decisions
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Quick Stats Counter */}
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+                      <span style={{ fontSize: '0.76rem', color: 'var(--text-secondary)' }}>
+                        Cycles: <strong style={{ color: '#fff' }}>{historyDecisions.length}</strong>
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: '#34d399', background: 'rgba(16, 185, 129, 0.15)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(16, 185, 129, 0.3)' }}>
+                        Keep: {historyDecisions.filter(h => h.decision === 'Keep').length}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: 'var(--accent-cyan-light)', background: 'rgba(14, 165, 233, 0.15)', padding: '2px 8px', borderRadius: '4px', border: '1px solid var(--border-focus)' }}>
+                        Mutate: {historyDecisions.filter(h => h.decision === 'Mutate').length}
+                      </span>
+                      <span style={{ fontSize: '0.74rem', color: '#fb7185', background: 'rgba(244, 63, 94, 0.15)', padding: '2px 8px', borderRadius: '4px', border: '1px solid rgba(244, 63, 94, 0.3)' }}>
+                        Reject: {historyDecisions.filter(h => h.decision === 'Reject').length}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Comprehensive Decision History Table */}
+                  <div className="history-table-scroll">
+                    <table className="evolution-table">
+                      <thead>
+                        <tr>
+                          <th>Generation</th>
+                          <th>Architecture Change</th>
+                          <th>Performance</th>
+                          <th>Mutation Performed</th>
+                          <th>Reason for Mutation</th>
+                          <th style={{ minWidth: '130px' }}>Decision</th>
+                          <th>Improvement</th>
+                          <th>Time</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {historyDecisions.map((row, idx) => {
+                          let badgeClass = 'initial';
+                          let icon = '●';
+                          if (row.decision === 'Keep') {
+                            badgeClass = 'keep';
+                            icon = '✓';
+                          } else if (row.decision === 'Mutate') {
+                            badgeClass = 'mutate';
+                            icon = '⚡';
+                          } else if (row.decision === 'Reject') {
+                            badgeClass = 'reject';
+                            icon = '✗';
+                          }
+
+                          return (
+                            <tr key={idx}>
+                              <td className="col-gen">Gen {row.generation}</td>
+                              <td className="col-arch" style={{ fontSize: '0.82rem' }}>{row.archChange}</td>
+                              <td style={{ color: 'var(--accent-cyan-light)', fontWeight: 700, fontFamily: 'var(--font-mono)' }}>
+                                {row.performance}
+                              </td>
+                              <td style={{ color: '#fff', fontWeight: 600 }}>{row.mutation}</td>
+                              <td style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', maxWidth: '320px' }}>
+                                {row.reason}
+                              </td>
+                              {/* VISUALLY CLEAR DECISION: Keep / Mutate / Reject */}
+                              <td>
+                                <span className={`badge-decision ${badgeClass}`}>
+                                  <span>{icon}</span>
+                                  <span>{row.decision}</span>
+                                </span>
+                              </td>
+                              <td style={{ 
+                                fontWeight: 700, 
+                                fontFamily: 'var(--font-mono)',
+                                color: row.improvement.startsWith('+') ? 'var(--accent-emerald-light)' : row.improvement.startsWith('-') ? 'var(--accent-rose)' : 'var(--text-secondary)'
+                              }}>
+                                {row.improvement}
+                              </td>
+                              <td style={{ color: 'var(--text-muted)', fontSize: '0.76rem' }}>
+                                {row.timestamp}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                </section>
+
+                {/* 4.4. EVOLUTION PIPELINE (7 CONNECTED STAGES) */}
+                <section id="evolution" className="card">
+                  <div className="card-header">
+                    <div className="card-title-wrap">
+                      <span className="card-icon">⚡</span>
+                      <div>
+                        <h2 className="card-title">Autonomous Evolution Cycle Pipeline</h2>
+                        <div className="card-subtitle">Sense-think-act architecture evolution loop</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pipeline-track">
+                    {[
+                      { step: 1, name: 'Evaluate Performance' },
+                      { step: 2, name: 'Detect Performance Issue' },
+                      { step: 3, name: 'Select Mutation' },
+                      { step: 4, name: 'Generate New Architecture' },
+                      { step: 5, name: 'Evaluate New Architecture' },
+                      { step: 6, name: 'Compare Performance' },
+                      { step: 7, name: 'Accept / Reject' }
+                    ].map((st, idx) => (
+                      <React.Fragment key={st.step}>
+                        <div 
+                          id={`pipe-step-${st.step}`} 
+                          className={`pipeline-stage-box ${activeStep === st.step ? 'active-stage' : ''}`}
+                        >
+                          <span className="stage-number">{st.step < 10 ? `0${st.step}` : st.step}</span>
+                          <span className="stage-name">{st.name}</span>
+                        </div>
+                        {idx < 6 && <span className="pipeline-connector">➔</span>}
+                      </React.Fragment>
+                    ))}
+                  </div>
+                </section>
+
+              </div>
+
+              {/* RIGHT SIDEBAR COLUMN: QUICK TELEMETRY, DECISION PANEL, PRESETS */}
+              <div className="sidebar-column">
+
+                {/* Quick Telemetry Card */}
+                <div className="sidebar-widget">
+                  <div className="widget-title">
+                    <span>⚡</span> System Telemetry
+                  </div>
+
+                  <div className="quick-status-list">
+                    <div className="quick-status-row">
+                      <span className="quick-label">System State</span>
+                      <span className="quick-val" style={{ color: evolutionStatus === 'REJECTED' ? 'var(--accent-rose)' : 'var(--accent-emerald)' }}>
+                        ● {evolutionStatus}
+                      </span>
+                    </div>
+                    <div className="quick-status-row">
+                      <span className="quick-label">Active Generation</span>
+                      <span className="quick-val">{generation < 10 ? `0${generation}` : generation}</span>
+                    </div>
+                    <div className="quick-status-row">
+                      <span className="quick-label">Total Mutations</span>
+                      <span className="quick-val" style={{ color: 'var(--accent-purple)' }}>
+                        {totalMutations < 10 ? `0${totalMutations}` : totalMutations}
+                      </span>
+                    </div>
+                    <div className="quick-status-row">
+                      <span className="quick-label">Peak Performance</span>
+                      <span className="quick-val" style={{ color: 'var(--accent-cyan-light)' }}>
+                        {bestScore.toFixed(1)}%
+                      </span>
+                    </div>
+                    <div className="quick-status-row">
+                      <span className="quick-label">Neuron Animation</span>
+                      <span className="quick-val" style={{ color: 'var(--text-secondary)' }}>
+                        {animRunning ? 'Running' : 'Paused'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 4.5. AGENT DECISION PANEL */}
+                <section id="decision" className="sidebar-widget agent-decision-panel">
+                  <div className="widget-title">
+                    <span>🧠</span> Real-Time Agent Decision
+                  </div>
+
+                  <div className="decision-display-card">
+                    <div className="decision-field-box">
+                      <span className="decision-field-label">Current Performance</span>
+                      <span className="decision-field-val">{latestDecision.currentPerformance}</span>
+                    </div>
+
+                    <div className="decision-field-box">
+                      <span className="decision-field-label">Detected Issue</span>
+                      <span className="decision-field-val" style={{ fontSize: '0.82rem', color: '#fde68a' }}>
+                        {latestDecision.detectedIssue}
+                      </span>
+                    </div>
+
+                    <div className="decision-field-box">
+                      <span className="decision-field-label">Selected Mutation</span>
+                      <span className="decision-field-val" style={{ color: 'var(--accent-cyan-light)' }}>
+                        {latestDecision.selectedMutation}
+                      </span>
+                    </div>
+
+                    <div className="decision-field-box">
+                      <span className="decision-field-label">Candidate Architecture</span>
+                      <span className="decision-field-val" style={{ fontSize: '0.85rem' }}>
+                        {latestDecision.newArchitecture}
+                      </span>
+                    </div>
+
+                    <div className="decision-field-box">
+                      <span className="decision-field-label">Candidate Performance</span>
+                      <span className="decision-field-val">{latestDecision.newPerformance}</span>
+                    </div>
+
+                    <div className="decision-field-box">
+                      <span className="decision-field-label">Decision</span>
+                      <span className={`decision-badge-pill ${latestDecision.finalDecision.includes('ACCEPTED') || latestDecision.finalDecision.includes('Keep') ? 'accepted' : latestDecision.finalDecision.includes('REJECTED') || latestDecision.finalDecision.includes('Reject') ? 'rejected' : 'ready'}`}>
+                        {latestDecision.finalDecision.includes('ACCEPTED') || latestDecision.finalDecision.includes('Keep') ? '✓ KEEP CANDIDATE' : 
+                         latestDecision.finalDecision.includes('REJECTED') || latestDecision.finalDecision.includes('Reject') ? '✗ REJECT CANDIDATE' : 
+                         latestDecision.finalDecision}
+                      </span>
+                    </div>
+
+                    <div className="decision-reason-box">
+                      <strong style={{ color: 'var(--accent-cyan)', fontSize: '0.76rem', textTransform: 'uppercase', display: 'block', marginBottom: '2px' }}>
+                        Agent Reasoning:
+                      </strong>
+                      <span>“{latestDecision.reason}”</span>
+                    </div>
+                  </div>
+
+                  {/* Agent Diagnostic Thought Stream */}
+                  <div>
+                    <span style={{ fontSize: '0.74rem', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)', fontWeight: 700 }}>
+                      Agent Thought Stream
+                    </span>
+                    <div id="agentDecisionLogs" className="logs-container">
+                      {agentLogs.length === 0 ? (
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.8rem', padding: '8px' }}>
+                          Awaiting diagnostic thoughts...
+                        </div>
+                      ) : (
+                        agentLogs.slice().reverse().map((log, idx) => (
+                          <div key={idx} className={`log-item type-${log.type}`}>
+                            <div className="log-item-header">
+                              <span className="log-item-stage">{log.stage} • {log.title}</span>
+                              <span style={{ opacity: 0.7 }}>{log.timestamp}</span>
+                            </div>
+                            <div className="log-item-msg">{log.message}</div>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+                </section>
+
+                {/* Presentation Scenarios */}
+                <div className="sidebar-widget">
+                  <div className="widget-title">
+                    <span>🎯</span> Presentation Presets
+                  </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => handleLoadPreset('balanced')}
+                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.8rem', padding: '8px 12px' }}
+                    >
+                      <span>● Baseline Setup (72%)</span>
+                    </button>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => handleLoadPreset('underfitting')}
+                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.8rem', padding: '8px 12px' }}
+                    >
+                      <span>● Underfitting Demo (48%)</span>
+                    </button>
+                    <button 
+                      className="btn btn-secondary" 
+                      onClick={() => handleLoadPreset('bloat')}
+                      style={{ width: '100%', justifyContent: 'flex-start', fontSize: '0.8rem', padding: '8px 12px' }}
+                    >
+                      <span>● Bloat / Pruning Demo (88%)</span>
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* ================================================================= */}
+            {/* 5. AI MODEL PERFORMANCE & VARIATION ANALYSIS (ML DASHBOARD)       */}
+            {/* ================================================================= */}
+            <section id="model-comparison" className="card">
+              <div className="comparison-card-header">
+                <div className="card-title-wrap">
+                  <span className="card-icon">📈</span>
+                  <div>
+                    <h2 className="card-title">AI Model Performance &amp; Variation Analysis</h2>
+                    <div className="card-subtitle">
+                      Comparative multi-model benchmark variation across evaluation metrics and evolutionary generations
+                    </div>
+                  </div>
+                </div>
+
+                <div className="prototype-disclaimer-pill" style={{ borderColor: 'rgba(245, 158, 11, 0.4)', color: '#fde68a' }}>
+                  <span>⚠️</span> Simulated ML Experiment Analytics
+                </div>
+              </div>
+
+              {/* DEDICATED NVIDIA NEMOTRON SPOTLIGHT BANNER */}
+              <div className="nemotron-spotlight-bar">
+                <div className="nemotron-spotlight-left">
+                  <div className="nemotron-icon-chip">
+                    <NvidiaNemotronLogo size={22} color="#000" />
+                  </div>
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <strong style={{ color: '#fff', fontSize: '1rem', letterSpacing: '-0.01em' }}>NVIDIA Nemotron</strong>
+                      <span className="nemotron-badge">Enterprise Reasoning &amp; Agentic AI</span>
+                    </div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', marginTop: '2px' }}>
+                      High-throughput enterprise reasoning architecture • Peak Benchmark: <strong style={{ color: '#76b900' }}>88.2%</strong> • Speed Score: <strong style={{ color: '#76b900' }}>89.4</strong> • Reasoning Score: <strong style={{ color: '#76b900' }}>85.8</strong>
+                    </div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                  <span style={{ fontSize: '0.74rem', color: '#76b900', background: 'rgba(118, 185, 0, 0.15)', padding: '5px 12px', borderRadius: '20px', border: '1px solid rgba(118, 185, 0, 0.4)', fontWeight: 700 }}>
+                    Active Evaluation Target
+                  </span>
+                </div>
+              </div>
+
+              {/* 4 Summary Analytics Metric Cards */}
+              <div className="analytics-summary-grid">
+                <div className="analytics-summary-card top-stat">
+                  <div className="summary-card-label">Best Demo Performance</div>
+                  <div id="summaryBestPerfVal" className="summary-card-val" style={{ color: 'var(--accent-emerald-light)' }}>95.1%</div>
+                  <div id="summaryBestPerfModel" className="summary-card-sub">Claude (Peak Demo)</div>
+                </div>
+
+                <div className="analytics-summary-card avg-stat">
+                  <div className="summary-card-label">Average Performance</div>
+                  <div id="summaryAvgPerfVal" className="summary-card-val" style={{ color: 'var(--accent-cyan-light)' }}>87.6%</div>
+                  <div className="summary-card-sub">Active cohort mean</div>
+                </div>
+
+                <div className="analytics-summary-card var-stat">
+                  <div className="summary-card-label">Highest Variation</div>
+                  <div id="summaryHighestVarVal" className="summary-card-val" style={{ color: 'var(--accent-amber)' }}>±5.2%</div>
+                  <div id="summaryHighestVarModel" className="summary-card-sub">OX Alpha (Max Spread)</div>
+                </div>
+
+                <div className="analytics-summary-card count-stat">
+                  <div className="summary-card-label">Models Compared</div>
+                  <div id="summaryModelsCountVal" className="summary-card-val" style={{ color: 'var(--accent-purple)' }}>
+                    {selectedModels.size} / {AI_MODELS_LIST.length}
+                  </div>
+                  <div className="summary-card-sub">Filterable cohort</div>
+                </div>
+              </div>
+
+              {/* MAIN GRAPH 1: Multi-Line Performance Variation */}
+              <div className="analytics-graph-card main-graph-card">
+                <div className="graph-card-header">
+                  <div>
+                    <h3 className="graph-card-title">Multi-Line Performance Variation Across Evaluations</h3>
+                    <div className="graph-card-subtitle">Smooth cubic curves showing model variance across 8 sequential evaluation iterations</div>
+                  </div>
+                  <span className="graph-tag">Main Variation Graph</span>
+                </div>
+
+                {/* Interactive Model Legend Chips */}
+                <div className="graph-model-legend-bar">
+                  <span className="legend-bar-title">Models:</span>
+                  {AI_MODELS_LIST.map(m => (
+                    <span 
+                      key={m.id} 
+                      className={`graph-legend-chip ${selectedModels.has(m.id) ? 'active' : 'inactive'}`}
+                      style={{ '--chip-color': m.color }}
+                      onClick={() => toggleModel(m.id)}
+                      title={`Click to filter ${m.name}`}
+                    >
+                      <span className="legend-chip-dot" style={{ background: m.color }}></span>
+                      <span className="legend-chip-name">{m.name}</span>
+                    </span>
+                  ))}
+                </div>
+
+                <div className="analytics-canvas-wrapper">
+                  <canvas id="mainVariationCanvas" height="460"></canvas>
+                  <div id="mainVariationTooltip" className="analytics-tooltip" style={{ display: 'none' }}></div>
+                </div>
+
+                <div className="analytics-graph-footer-legend">
+                  <span className="legend-hint">Hover anywhere on the graph to inspect multi-model crosshair values</span>
+                </div>
+              </div>
+
+              {/* SECONDARY 2-COLUMN GRAPHS GRID */}
+              <div className="analytics-dual-grid">
+
+                {/* SECOND GRAPH: Metric-wise Model Variation */}
+                <div className="analytics-graph-card">
+                  <div className="graph-card-header">
+                    <div>
+                      <h3 className="graph-card-title">Metric-wise Model Variation</h3>
+                      <div className="graph-card-subtitle">Ranked model performance for selected benchmark category</div>
+                    </div>
+
+                    <div className="control-widget" style={{ marginLeft: 'auto' }}>
+                      <label htmlFor="metricSelectDropdown" style={{ fontSize: '0.78rem' }}>Select Metric:</label>
+                      <select 
+                        id="metricSelectDropdown" 
+                        className="styled-select"
+                        value={selectedMetric}
+                        onChange={handleMetricSelect}
+                      >
+                        <option value="Reasoning">Reasoning</option>
+                        <option value="Coding">Coding</option>
+                        <option value="Language">Language</option>
+                        <option value="Mathematics">Mathematics</option>
+                        <option value="Knowledge">Knowledge</option>
+                        <option value="Speed">Speed</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="analytics-canvas-wrapper">
+                    <canvas id="metricVariationCanvas" height="380"></canvas>
+                    <div id="metricVariationTooltip" className="analytics-tooltip" style={{ display: 'none' }}></div>
+                  </div>
+                </div>
+
+                {/* THIRD GRAPH: Generational Trajectory */}
+                <div className="analytics-graph-card">
+                  <div className="graph-card-header">
+                    <div>
+                      <h3 className="graph-card-title">Performance Variation Across Generations</h3>
+                      <div className="graph-card-subtitle">Trajectory tracking across 8 evolutionary generational epochs (Gen 1 to Gen 8)</div>
+                    </div>
+                    <span className="graph-tag">Generations 1–8</span>
+                  </div>
+
+                  {/* Interactive Model Legend Chips */}
+                  <div className="graph-model-legend-bar">
+                    <span className="legend-bar-title">Generational Curves:</span>
+                    {AI_MODELS_LIST.map(m => (
+                      <span 
+                        key={m.id} 
+                        className={`graph-legend-chip ${selectedModels.has(m.id) ? 'active' : 'inactive'}`}
+                        style={{ '--chip-color': m.color }}
+                        onClick={() => toggleModel(m.id)}
+                        title={`Click to filter ${m.name}`}
+                      >
+                        <span className="legend-chip-dot" style={{ background: m.color }}></span>
+                        <span className="legend-chip-name">{m.name}</span>
+                      </span>
+                    ))}
+                  </div>
+
+                  <div className="analytics-canvas-wrapper">
+                    <canvas id="generationVariationCanvas" height="380"></canvas>
+                    <div id="generationVariationTooltip" className="analytics-tooltip" style={{ display: 'none' }}></div>
+                  </div>
+                </div>
+
+              </div>
+
+              <div className="comparison-footnote">
+                <span>*</span> Performance values are illustrative and may vary depending on model version, task, benchmark and evaluation method. Values shown are simulated demonstration metrics for college project presentation purposes.
+              </div>
+            </section>
+
+            {/* ================================================================= */}
+            {/* 6. VIVA DEFENSE GUIDE & PROJECT IDENTITY                          */}
+            {/* ================================================================= */}
+            <section className="card">
+              <div className="card-header">
+                <div className="card-title-wrap">
+                  <span className="card-icon">🎓</span>
+                  <div>
+                    <h2 className="card-title">Viva Defense &amp; Project Evaluation Guide</h2>
+                    <div className="card-subtitle">How this autonomous agentic system functions</div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="viva-grid">
+                <div className="viva-card">
+                  <h5>1. Performance Evaluation</h5>
+                  <p>The system evaluates current neural-network accuracy, loss, and latency, computing an objective performance score to determine if improvements are required.</p>
+                </div>
+                <div className="viva-card">
+                  <h5>2. Performance-Driven Mutation</h5>
+                  <p>When accuracy falls below the target threshold or latency bloat is detected, the agent autonomously generates topology mutations (adding or pruning neurons/layers).</p>
+                </div>
+                <div className="viva-card">
+                  <h5>3. Keep / Mutate / Reject Decision</h5>
+                  <p>Candidate architectures are benchmarked. If the new architecture outperforms the baseline, the decision is <strong>Keep</strong>. If degraded, it is <strong>Reject</strong> and the baseline is retained.</p>
+                </div>
+              </div>
+            </section>
+
+          </main>
+
+          {/* ================================================================= */}
+          {/* 7. APP FOOTER                                                     */}
+          {/* ================================================================= */}
+          <footer className="app-footer">
+            <p>Self-Evolving Neural Networks Using Performance-Driven Architecture Mutation &bull; Agentic AI Project Dashboard</p>
+          </footer>
+
+        </div>
+      );
+    }
+
+    // Mount React App
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
