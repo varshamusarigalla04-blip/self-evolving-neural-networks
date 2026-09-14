@@ -26,7 +26,8 @@ export default function Navbar({
   onReturnToWelcome,
   activeSection = 'dashboard',
   sessionKey,
-  hasEnvKey
+  hasEnvKey,
+  hasServerKey = false
 }) {
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -80,15 +81,17 @@ export default function Navbar({
 
         {/* Right Action Buttons */}
         <div className="navbar-actions">
-          {sessionKey ? (
+          {sessionKey || hasServerKey ? (
             <button
               className="btn btn-secondary btn-sm nav-api-pill"
               onClick={() => handleNavClick('#api-session')}
-              title={`API Key active (${hasEnvKey ? '.env' : 'Session Memory'}). Click to view API Session Security.`}
+              title={`API Key active (${hasServerKey ? 'Vercel Serverless Vault' : (hasEnvKey ? '.env' : 'Session Memory')}). Click to view API Session Security.`}
             >
               <KeyRound size={13} strokeWidth={2.2} />
               <span className="api-pill-dot" />
-              <span className="api-pill-text">{hasEnvKey ? '.env Key Active' : 'API Active'}</span>
+              <span className="api-pill-text">
+                {hasServerKey ? 'Server Key Active' : (hasEnvKey ? '.env Key Active' : 'API Active')}
+              </span>
             </button>
           ) : (
             <button

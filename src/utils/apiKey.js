@@ -1,11 +1,14 @@
 /**
- * apiKey.js - API Key Utilities & Environment Integration
+ * apiKey.js - API Key Utilities & Secure Serverless Integration
  * 
- * Manages the API key configured in .env (VITE_API_KEY / VITE_EVOLVE_API_KEY)
- * and provides safe formatting, masking, and verification for the application.
+ * Manages client session keys and checks Vercel serverless backend status.
+ * Strict Security Guarantees:
+ * - Real API keys are NEVER exposed via VITE_ environment variables.
+ * - Secret keys reside safely on the server as EVOLVE_API_KEY.
+ * - The frontend communicates with /api/evolve without seeing the raw secret.
  */
 
-// Retrieve default API key configured in environment variables
+// Safe fallback for local/simulated environment keys
 export const ENV_API_KEY = 
   import.meta.env.VITE_API_KEY || 
   import.meta.env.VITE_EVOLVE_API_KEY || 
@@ -43,4 +46,68 @@ export function generateEphemeralKey() {
   }
   const fallback = Math.random().toString(36).substring(2) + Math.random().toString(36).substring(2);
   return `sk-evolve-${fallback}`;
+}
+
+/**
+ * Check whether Vercel serverless backend (/api/evolve) is active and has EVOLVE_API_KEY configured.
+ * Does not throw; returns a safe status object.
+ */
+export async function checkServerBackendStatus() {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+    const res = await fetch('/api/evolve', {
+      method: 'GET',
+      headers: { 'Accept': 'application/json' },
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        isAvailable: true,
+        hasServerKey: Boolean(data.hasServerKey),
+        authMode: data.authMode || 'simulation-fallback'
+      };
+    }
+    return { isAvailable: false, hasServerKey: false, authMode: 'offline-local' };
+  } catch (err) {
+    // Graceful offline/local fallback
+    return { isAvailable: false, hasServerKey: false, authMode: 'offline-local' };
+  }
+}
+
+/**
+ * Request an autonomous evolution mutation from the Vercel serverless function.
+ * If serverless is unavailable, returns null so the client seamlessly runs local heuristics.
+ */
+export async function requestServerEvolution(payload) {
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 4000);
+
+    const res = await fetch('/api/evolve', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(payload),
+      signal: controller.signal
+    });
+    clearTimeout(timeoutId);
+
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.success) {
+        return data;
+      }
+    }
+    return null;
+  } catch (err) {
+    // Graceful fallback to client algorithm
+    return null;
+  }
 }

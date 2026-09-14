@@ -27,6 +27,7 @@ import { formatApiKey, maskApiKey, ENV_API_KEY } from '../utils/apiKey.js';
 export default function ApiKeyPanel({ 
   sessionKey, 
   hasEnvKey, 
+  hasServerKey = false,
   onGenerateKey, 
   onResetToEnvKey, 
   onClearKey 
@@ -37,6 +38,7 @@ export default function ApiKeyPanel({
   // Clean canonical representations using utility
   const fullDisplayKey = formatApiKey(sessionKey);
   const maskedKey = maskApiKey(sessionKey);
+  const isServerSecured = Boolean(hasServerKey);
   const isEnvConfiguredKey = hasEnvKey && fullDisplayKey === formatApiKey(ENV_API_KEY);
 
   const handleCopy = () => {
@@ -56,15 +58,21 @@ export default function ApiKeyPanel({
           <div>
             <h2 className="section-heading">API CONFIGURATION &amp; SESSION SECURITY</h2>
             <p className="section-subheading">
-              Environment-Configured &amp; Ephemeral Memory Session Key for Autonomous Agent Interaction
+              Vercel Serverless Vault &amp; Ephemeral Memory Session Key for Autonomous Agent Interaction
             </p>
           </div>
         </div>
 
-        <div className={`session-status-badge ${sessionKey ? 'status-active' : 'status-inactive'}`}>
+        <div className={`session-status-badge ${sessionKey || isServerSecured ? 'status-active' : 'status-inactive'}`}>
           <span className="status-dot" />
           <span>
-            Status: {sessionKey ? (isEnvConfiguredKey ? 'Active (.env Loaded)' : 'Active (Session Memory)') : 'Inactive'}
+            Status: {isServerSecured
+              ? 'Active (Vercel Serverless Secured)'
+              : sessionKey
+              ? isEnvConfiguredKey
+                ? 'Active (.env Loaded)'
+                : 'Active (Session Memory)'
+              : 'Inactive'}
           </span>
         </div>
       </div>
@@ -74,7 +82,11 @@ export default function ApiKeyPanel({
         <div className="apikey-label-row">
           <span className="apikey-label">Active API Key:</span>
           <span className="security-guarantee-tag font-mono">
-            {isEnvConfiguredKey ? 'Loaded from .env (VITE_API_KEY)' : 'Ephemeral Memory • Zero-Storage'}
+            {isServerSecured
+              ? 'Vercel Serverless Vault • EVOLVE_API_KEY'
+              : isEnvConfiguredKey
+              ? 'Loaded from .env (VITE_API_KEY)'
+              : 'Ephemeral Memory • Zero-Storage'}
           </span>
         </div>
 
@@ -175,7 +187,7 @@ export default function ApiKeyPanel({
         <div className="security-notice-list">
           <div className="notice-item">
             <CheckCircle2 size={14} strokeWidth={2.2} className="notice-check-lucide" color="#10b981" />
-            <span>Generated locally via <code>crypto.getRandomValues()</code>.</span>
+            <span>Generated locally via <code>crypto.getRandomValues()</code> or verified via Vercel Serverless Vault.</span>
           </div>
           <div className="notice-item">
             <CheckCircle2 size={14} strokeWidth={2.2} className="notice-check-lucide" color="#10b981" />
@@ -184,6 +196,10 @@ export default function ApiKeyPanel({
           <div className="notice-item">
             <CheckCircle2 size={14} strokeWidth={2.2} className="notice-check-lucide" color="#10b981" />
             <span>Automatically cleared upon browser reload or tab closure.</span>
+          </div>
+          <div className="notice-item">
+            <ShieldCheck size={14} strokeWidth={2.2} className="notice-check-lucide" color="#10b981" />
+            <span>Backend environment variables (<code>EVOLVE_API_KEY</code>) are never exposed to browser bundles.</span>
           </div>
         </div>
       </div>

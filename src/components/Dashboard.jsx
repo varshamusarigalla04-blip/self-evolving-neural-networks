@@ -55,6 +55,7 @@ export default function Dashboard({
   // API Session
   sessionKey,
   hasEnvKey,
+  hasServerKey = false,
   onGenerateKey,
   onResetToEnvKey,
   onClearKey,
@@ -106,6 +107,7 @@ export default function Dashboard({
         onReturnToWelcome={onReturnToWelcome}
         sessionKey={sessionKey}
         hasEnvKey={hasEnvKey}
+        hasServerKey={hasServerKey}
       />
 
       <main className="dashboard-sections-container">
@@ -177,6 +179,7 @@ export default function Dashboard({
         <ApiKeyPanel
           sessionKey={sessionKey}
           hasEnvKey={hasEnvKey}
+          hasServerKey={hasServerKey}
           onGenerateKey={onGenerateKey}
           onResetToEnvKey={onResetToEnvKey}
           onClearKey={onClearKey}

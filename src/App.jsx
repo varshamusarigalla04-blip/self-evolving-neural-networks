@@ -1,9 +1,16 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import './App.css';
 
 import WelcomePage from './components/WelcomePage.jsx';
 import Dashboard from './components/Dashboard.jsx';
-import { ENV_API_KEY, formatApiKey, maskApiKey, generateEphemeralKey } from './utils/apiKey.js';
+import { 
+  ENV_API_KEY, 
+  formatApiKey, 
+  maskApiKey, 
+  generateEphemeralKey,
+  checkServerBackendStatus,
+  requestServerEvolution
+} from './utils/apiKey.js';
 
 /**
  * App Component
@@ -97,8 +104,23 @@ export default function App() {
     hiddenLayerCount: '0'
   });
 
-  // API Session Key initialized directly from .env (VITE_API_KEY)
+  // API Session Key initialized from .env (if present) or ephemeral memory
   const [sessionKey, setSessionKey] = useState(ENV_API_KEY ? formatApiKey(ENV_API_KEY) : null);
+  const [hasServerKey, setHasServerKey] = useState(false);
+
+  // Check Vercel serverless backend status on application load
+  useEffect(() => {
+    let isMounted = true;
+    checkServerBackendStatus().then((status) => {
+      if (isMounted) {
+        setHasServerKey(Boolean(status.hasServerKey));
+        if (status.hasServerKey && !sessionKey) {
+          setSessionKey('sk-evolve-serverless-vault-active');
+        }
+      }
+    });
+    return () => { isMounted = false; };
+  }, []);
 
   // Helper formatting for architecture string
   const formatArchitectureStr = (layerArr) => {
@@ -206,14 +228,23 @@ export default function App() {
       }
 
       // Step 2: Performance is below threshold -> Agent selects a mutation
-      setEvolutionStep('Performance below threshold. Agent selecting mutation...');
+      setEvolutionStep('Performance below threshold. Agent evaluating mutation...');
 
-      setTimeout(() => {
-        // Decide which of the 4 mutations to execute
-        // 1. Add neurons to hidden layer
-        // 2. Remove neurons from hidden layer
-        // 3. Add a hidden layer
-        // 4. Remove a hidden layer
+      setTimeout(async () => {
+        // Query Vercel serverless backend if active
+        let serverRes = null;
+        try {
+          serverRes = await requestServerEvolution({
+            currentScore: oldPerf,
+            thresholdScore,
+            layers,
+            generation: evolutionHistory.length + 1
+          });
+        } catch (e) {
+          serverRes = null;
+        }
+
+        // Decide which of the 4 mutations to execute (local heuristic baseline)
         const numHidden = layers.length - 2;
         const availableMutations = ['add_neurons'];
 
@@ -262,7 +293,6 @@ export default function App() {
             name: `Add ${neuronsToAdd} Neurons (Layer ${targetHiddenIdx})`,
             category: 'Width Expansion'
           };
-          // Adding neurons has 75% chance to improve, 25% chance to decrease
           delta = Math.random() < 0.75 ? (Math.floor(Math.random() * 4) + 2) : -(Math.floor(Math.random() * 2) + 1);
         } else if (chosenType === 'remove_neurons') {
           const targetHiddenIdx = (candidateLayers[1] >= candidateLayers[2]) ? 1 : 2;
@@ -273,10 +303,8 @@ export default function App() {
             name: `Remove 1 Neuron (Layer ${targetHiddenIdx})`,
             category: 'Pruning & Sparsity'
           };
-          // Pruning has 40% chance of improving (regularization), 60% chance of degradation
           delta = Math.random() < 0.4 ? (Math.floor(Math.random() * 3) + 1) : -(Math.floor(Math.random() * 3) + 2);
         } else if (chosenType === 'add_hidden_layer') {
-          // Insert a new hidden layer of 3 neurons before the output layer
           const newHiddenIdx = candidateLayers.length - 1;
           candidateLayers.splice(newHiddenIdx, 0, 3);
           mutDesc = `Add Hidden Layer ${numHidden + 1} (3 neurons)`;
@@ -285,10 +313,8 @@ export default function App() {
             name: `Add Hidden Layer ${numHidden + 1}`,
             category: 'Depth Expansion'
           };
-          // Adding layer has 70% chance to improve, 30% to degrade
           delta = Math.random() < 0.7 ? (Math.floor(Math.random() * 4) + 3) : -(Math.floor(Math.random() * 2) + 1);
         } else if (chosenType === 'remove_hidden_layer') {
-          // Remove the last hidden layer
           candidateLayers.splice(candidateLayers.length - 2, 1);
           mutDesc = `Remove Hidden Layer ${numHidden}`;
           selectedMutObj = {
@@ -296,24 +322,31 @@ export default function App() {
             name: `Remove Hidden Layer ${numHidden}`,
             category: 'Depth Reduction'
           };
-          // Removing layer has 35% chance of improving, 65% degradation
           delta = Math.random() < 0.35 ? (Math.floor(Math.random() * 3) + 1) : -(Math.floor(Math.random() * 4) + 2);
         }
 
-        // Calculate candidate performance
-        const candidatePerf = Math.min(96, Math.max(60, oldPerf + delta));
+        // Overwrite with serverless decision if serverless API returned a response
+        let candidatePerf = Math.min(96, Math.max(60, oldPerf + delta));
+        if (serverRes && serverRes.success && Array.isArray(serverRes.candidateLayers)) {
+          candidateLayers = serverRes.candidateLayers;
+          mutDesc = serverRes.mutationDetails;
+          selectedMutObj = {
+            id: serverRes.mutationType,
+            name: serverRes.mutationDetails,
+            category: serverRes.mutationCategory || 'Topology Morphing'
+          };
+          candidatePerf = serverRes.newScore;
+        }
 
         setEvolutionStep(`Testing candidate: ${mutDesc} → Score: ${candidatePerf}%...`);
 
         setTimeout(() => {
           // Step 3: Compare old and new performance
-          const isImprovement = candidatePerf > oldPerf;
+          const isImprovement = serverRes ? (serverRes.decision === 'ACCEPTED') : (candidatePerf > oldPerf);
+          const newDecision = serverRes ? serverRes.decision : (isImprovement ? 'ACCEPTED' : 'REJECTED');
+          const newReasonText = serverRes ? serverRes.reason : (isImprovement ? 'New architecture improved the performance.' : 'New architecture decreased performance. Mutation rejected.');
 
           if (isImprovement) {
-            // ACCEPTED: Keep new architecture!
-            const newDecision = 'ACCEPTED';
-            const newReasonText = 'New architecture improved the performance.';
-
             setLayers(candidateLayers);
             setCurrentScore(candidatePerf);
             setNewScore(candidatePerf);
@@ -436,6 +469,7 @@ export default function App() {
           evolutionHistory={evolutionHistory}
           sessionKey={sessionKey}
           hasEnvKey={!!ENV_API_KEY}
+          hasServerKey={hasServerKey}
           onGenerateKey={handleGenerateKey}
           onResetToEnvKey={handleResetToEnvKey}
           onClearKey={handleClearKey}
