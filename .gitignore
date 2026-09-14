@@ -20,6 +20,7 @@ build/
 scratch_*.txt
 scratch_*.py
 scratch_test.*
+push_to_github.bat
 
 # Log files
 npm-debug.log*
